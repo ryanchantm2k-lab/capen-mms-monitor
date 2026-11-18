@@ -21,6 +21,15 @@ endpoint, and verify a manual workflow dispatch before enabling the schedule.
 These repository identifiers are not secrets. No additional GitHub secret is
 required. Never add application credentials to this repository.
 
+For an authorised connection check, manually run the workflow with `test_alert`
+set to `true`. The server accepts this option only from a verified manual
+dispatch and sends a fixed, clearly labelled TEST ONLY message to the existing
+private staff destination. It changes no helper health or booking records.
+Tests are limited to one attempt per hour. Unknown delivery results stay held
+for review rather than being sent again, even after the hour expires. The
+workflow prints only the acknowledged message ID, never a webhook or token.
+Leave `test_alert` false for ordinary checks and all scheduled runs.
+
 The five-minute schedule runs independently of the office Mac. GitHub can delay
 or drop scheduled runs; this is best-effort monitoring, not an availability SLA.
 The Mac still needs power, a signed-in user, internet and valid application
