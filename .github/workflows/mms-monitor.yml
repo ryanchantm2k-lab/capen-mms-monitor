@@ -60,7 +60,6 @@ jobs:
           if (testAlert) console.log(`Discord connection test acknowledged; message ID: ${result.messageId}`);
           JS
   retain-schedule:
-    needs: monitor
     # Public-repository schedules can stop after 60 days without activity.
     # Touch only the generic README marker, once per UTC month, using the
     # ephemeral repository token. This job has no OIDC permission.

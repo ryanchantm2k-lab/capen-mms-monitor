@@ -44,7 +44,7 @@ checking its Actions allowance and billing.
 ## Keeping the schedule active
 
 GitHub can disable public-repository schedules after 60 days without repository
-activity. After a successful ordinary check, a separate maintenance job updates
+activity. On ordinary scheduled or manual runs, an independent maintenance job updates
 only the marker below once per UTC month. It uses the temporary `GITHUB_TOKEN`
 with repository contents write permission; the monitoring job has only contents
 read and OIDC permissions. No personal token, stored credential, application
