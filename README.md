@@ -62,4 +62,4 @@ held for review rather than automatically risking a duplicate message.
 References: [GitHub OIDC](https://docs.github.com/en/actions/reference/security/oidc),
 [schedule limitations](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
 
-<!-- capen-monitor-keepalive: 2026-10 -->
+<!-- capen-monitor-keepalive: 2026-11 -->
