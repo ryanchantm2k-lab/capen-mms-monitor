@@ -41,6 +41,17 @@ The scheduler keeps logs to generic status and issue counts. It does not print
 the OIDC token. Do not move this schedule into a private repository without
 checking its Actions allowance and billing.
 
+## Keeping the schedule active
+
+GitHub can disable public-repository schedules after 60 days without repository
+activity. After a successful ordinary check, a separate maintenance job updates
+only the marker below once per UTC month. It uses the temporary `GITHUB_TOKEN`
+with repository contents write permission; the monitoring job has only contents
+read and OIDC permissions. No personal token, stored credential, application
+record or workflow-file write is involved. A test-alert dispatch skips this job.
+The marker update stops when monitoring is disabled. This reduces the inactivity
+risk but cannot guarantee that GitHub will execute a delayed or dropped run.
+
 ## Recovery and disabling
 
 Set `MMS_MONITOR_ENABLED` to `false` or disable the workflow to stop scheduled
@@ -50,3 +61,5 @@ held for review rather than automatically risking a duplicate message.
 
 References: [GitHub OIDC](https://docs.github.com/en/actions/reference/security/oidc),
 [schedule limitations](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
+
+<!-- capen-monitor-keepalive: 2026-10 -->

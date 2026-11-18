@@ -12,9 +12,7 @@ on:
         required: false
         default: false
 
-permissions:
-  contents: read
-  id-token: write
+permissions: {}
 
 concurrency:
   group: mms-cloud-monitor
@@ -22,6 +20,9 @@ concurrency:
 
 jobs:
   monitor:
+    permissions:
+      contents: read
+      id-token: write
     # This generic workflow can live in a separately approved public repository.
     # The server trusts ONE configured repository name AND immutable ID.
     # Private runs consume Actions minutes; schedule is opt-in, default off.
@@ -57,4 +58,44 @@ jobs:
           if (testAlert && result.status !== 'test_alerted') throw new Error('The labelled connection test was not acknowledged.');
           console.log(`MMS monitor: ${result.status}; issues: ${Number(result.problemCount) || 0}`);
           if (testAlert) console.log(`Discord connection test acknowledged; message ID: ${result.messageId}`);
+          JS
+  retain-schedule:
+    needs: monitor
+    # Public-repository schedules can stop after 60 days without activity.
+    # Touch only the generic README marker, once per UTC month, using the
+    # ephemeral repository token. This job has no OIDC permission.
+    if: github.repository == 'ryanchantm2k-lab/capen-mms-monitor' && github.ref == 'refs/heads/main' && vars.MMS_MONITOR_ENABLED == 'true' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.test_alert != true))
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Retain monthly scheduler activity
+        shell: bash
+        env:
+          GH_REPOSITORY_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'JS'
+          const repository = 'ryanchantm2k-lab/capen-mms-monitor';
+          if (process.env.GITHUB_REPOSITORY !== repository) throw new Error('Unexpected monitor repository.');
+          const endpoint = `https://api.github.com/repos/${repository}/contents/README.md`;
+          const headers = { Authorization: `Bearer ${process.env.GH_REPOSITORY_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2026-03-10' };
+          const read = await fetch(`${endpoint}?ref=main`, { headers, redirect: 'error', signal: AbortSignal.timeout(15000) });
+          if (!read.ok) throw new Error(`Could not read the scheduler marker (HTTP ${read.status}).`);
+          const file = await read.json();
+          if (file.type !== 'file' || file.encoding !== 'base64' || typeof file.sha !== 'string') throw new Error('Unexpected README response.');
+          const content = Buffer.from(file.content, 'base64').toString('utf8');
+          const markers = content.match(/^<!-- capen-monitor-keepalive: \d{4}-\d{2} -->$/gm) || [];
+          if (markers.length !== 1) throw new Error('Expected exactly one scheduler marker.');
+          const month = new Date().toISOString().slice(0, 7);
+          const marker = `<!-- capen-monitor-keepalive: ${month} -->`;
+          if (markers[0] === marker) { console.log('Monthly scheduler marker already current.'); process.exit(0); }
+          const updated = content.replace(markers[0], marker);
+          const write = await fetch(endpoint, {
+            method: 'PUT', headers: { ...headers, 'Content-Type': 'application/json' }, redirect: 'error', signal: AbortSignal.timeout(15000),
+            body: JSON.stringify({ branch: 'main', sha: file.sha, message: `chore: retain scheduler activity (${month})`, content: Buffer.from(updated).toString('base64') }),
+          });
+          if (!write.ok) throw new Error(`Could not retain scheduler activity (HTTP ${write.status}).`);
+          const result = await write.json();
+          console.log(`Monthly scheduler marker updated: ${result.commit.sha}`);
           JS
